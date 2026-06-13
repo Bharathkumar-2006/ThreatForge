@@ -1,0 +1,24 @@
+Project Name: Mailcheckr
+
+Description:
+MailCheckr is a browser-based email security analysis platform that helps users evaluate sender reputation, fraud risk, and email trustworthiness. The system analyzes email metadata and integrates with external reputation services to provide security insights and phishing detection assistance.
+
+Tech Stack:
+Chrome Extension, JavaScript, Node.js, Express.js, MongoDB, REST APIs, JWT Authentication
+
+Notes:
+Scope:
+- User authentication and dashboard access
+- Email sender analysis
+- Reputation and fraud-risk assessment
+- Integration with third-party reputation services
+- Browser extension and backend communication
+
+Security Notes:
+- JWT-based authentication
+- Input validation on all API endpoints
+- Secure handling of external API keys
+- Protection against brute-force and credential stuffing attacks
+- Secure storage of user data
+- Rate limiting on sensitive endpoints
+- Prevention of information disclosure through error messages

@@ -1,0 +1,27 @@
+Module: Sign in
+
+Notes:
+The Sign In module allows registered users to authenticate using their email address and password.
+
+User credentials are submitted to the backend authentication service over HTTPS.
+
+The authentication service validates the credentials against stored user records.
+
+Upon successful authentication, a JWT access token is generated and returned to the user.
+
+Authenticated users can access protected application features based on their authorization level.
+
+Failed authentication attempts return an error message without revealing whether the email address exists in the system.
+
+The module supports session management and token expiration.
+
+All authentication requests are logged for security monitoring and auditing purposes.
+
+Threat Model:
+Threat Name|STRIDE|Risk|Attack Scenario|Mitigation
+Credential Brute‑Force via API Endpoint|Denial of Service / Elevation of Privilege|High|An attacker scripts rapid POST requests to /auth/login with guessed password combinations for a target email address. Because the endpoint lacks aggressive rate‑limiting per IP/account, the attacker can eventually discover a valid password or lock out the legitimate user, causing a temporary denial of service and potential account takeover.|Implement exponential back‑off and CAPTCHAs after a configurable number of failed attempts per IP and per account. Enforce account lockout after a threshold and notify the user. Use adaptive authentication (e.g., device fingerprint, geolocation) to add friction for suspicious login patterns.
+JWT Manipulation (Tampering)|Tampering / Elevation of Privilege|Critical|An attacker intercepts a valid JWT (e.g., via XSS in the extension) and modifies the payload to upgrade the "role" claim from "user" to "admin". If the backend does not verify the token signature against a strong, rotating secret or public key, the altered token is accepted, granting privileged access.|Sign JWTs with a strong HS256/RS256 secret stored securely (e.g., env var, secret manager) and rotate keys regularly. Validate the signature on every request, enforce strict claim validation (issuer, audience, expiration). Use short‑lived access tokens and refresh tokens stored httpOnly, Secure, SameSite=Strict.
+User Enumeration via Timing Differences|Information Disclosure|Medium|The login API responds faster when the supplied email does not exist versus when it exists (because password hash verification is skipped). An attacker measures response times across many attempts to compile a list of valid email addresses for further phishing or credential stuffing.|Normalize response time for both success and failure cases (e.g., always perform a dummy password hash verification). Return a generic error message and status code regardless of account existence.
+Replay Attack on JWT after Logout|Spoofing / Repudiation|Medium|After a user logs out, the JWT remains valid until its expiration. An attacker who captured the token (e.g., via compromised browser extension storage) can replay it to access protected endpoints, impersonating the user.|Implement token revocation lists or use short‑lived access tokens (e.g., 5‑15 minutes) with refresh tokens stored server‑side. Invalidate tokens on logout by adding them to a blacklist cache with TTL matching the token's remaining life.
+Cross‑Site Scripting (XSS) in Extension UI Leading to Credential Theft|Tampering / Information Disclosure|Critical|A malicious third‑party script is injected into the extension's popup (e.g., via a compromised CDN). The script reads the user's email/password fields and exfiltrates them to an attacker-controlled server before submission, compromising credentials.|Apply a strict Content Security Policy (CSP) in the extension manifest, avoid dynamic `eval` or `innerHTML`, and bundle all scripts locally. Perform input sanitization and use Subresource Integrity (SRI) if external resources are unavoidable.
+Insufficient Logging Sanitization (Log Injection)|Tampering / Repudiation|Low|An attacker includes newline characters or special log delimiters in the email field during login. If the backend logs raw input without sanitization, the log file can be corrupted, potentially masking audit trails or enabling log‑forging attacks.|Sanitize or encode all user‑supplied data before writing to logs. Use structured logging (JSON) where fields are separated by schema, and enforce length limits on logged values.
